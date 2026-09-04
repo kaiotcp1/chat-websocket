@@ -1,6 +1,8 @@
 name: Infrastructure
 
 on:
+  push:
+    branches: [main, develop, homolog]
   workflow_dispatch:
     inputs:
       apply:
