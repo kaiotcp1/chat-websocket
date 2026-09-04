@@ -65,7 +65,7 @@ jobs:
       - run: terraform -chdir=infra init -input=false
       - run: terraform -chdir=infra validate
       - name: Create saved plan
-        run: terraform -chdir=infra plan -input=false -lock-timeout=5m ${{ inputs.destroy && "-destroy" || "" }} -out=tfplan
+        run: terraform -chdir=infra plan -input=false -lock-timeout=5m ${{ inputs.destroy && '-destroy' || '' }} -out=tfplan
       - uses: actions/upload-artifact@v4
         with: { name: terraform-plan, path: infra/tfplan, if-no-files-found: error }
 
