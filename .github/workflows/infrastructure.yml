@@ -107,4 +107,15 @@ jobs:
       - run: terraform -chdir=infra apply -input=false -lock-timeout=5m tfplan
       - name: Smoke-test the deployed WebSocket
         if: needs.preflight.outputs.provision_infrastructure == 'true'
-        run: npm run smoke:websocket -- "$(terraform -chdir=infra output -raw websocket_url)"
+        run: |
+          endpoint="$(terraform -chdir=infra output -raw websocket_url)"
+          for attempt in {1..6}; do
+            if npm run smoke:websocket -- "$endpoint"; then
+              exit 0
+            fi
+            if [[ "$attempt" == "6" ]]; then
+              exit 1
+            fi
+            echo "WebSocket endpoint ainda em propagação; nova tentativa em 10 segundos."
+            sleep 10
+          done
