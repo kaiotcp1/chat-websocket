@@ -16,14 +16,34 @@ type RoomViewProps = {
   onSubmit: (event: FormEvent) => void;
 };
 
+const jsonToken = /("(?:\\.|[^"\\])*")(?=\s*:)|("(?:\\.|[^"\\])*")|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|\b(true|false|null)\b/g;
+
+function JsonEvent({ event }: { event: ServerEvent }) {
+  const json = JSON.stringify(event, null, 2) ?? "{}";
+  const tokens = [];
+  let cursor = 0;
+
+  for (const match of json.matchAll(jsonToken)) {
+    const start = match.index!;
+    tokens.push(<span key={`plain-${start}`}>{json.slice(cursor, start)}</span>);
+
+    const color = match[1] ? "text-[#72c7ff]" : match[2] ? "text-[#d9b46d]" : match[3] ? "text-[#c6a5ff]" : "text-[#e58bb8]";
+    tokens.push(<span className={color} key={`token-${start}`}>{match[0]}</span>);
+    cursor = start + match[0].length;
+  }
+
+  tokens.push(<span key="plain-end">{json.slice(cursor)}</span>);
+  return <code className="block whitespace-pre-wrap break-words">{tokens}</code>;
+}
+
 function EventStream({ events }: Pick<RoomViewProps, "events">) {
   return (
-    <details className="group mt-7 border-t border-[#284055] pt-4">
+    <details className="group mt-7 border-t border-[#284055] pt-4" open>
       <summary className="cursor-pointer list-none text-sm font-semibold text-[#b7cbdc] marker:hidden">
-        <span className="flex items-center justify-between"><span>Eventos recebidos</span><span className="text-[#658097] group-open:rotate-45">+</span></span>
+        <span className="flex items-center justify-between"><span>Eventos recebidos</span><span className="flex items-center gap-2"><span className="border border-[#35546b] bg-[#122333] px-1.5 py-0.5 text-[11px] font-normal text-[#a4c3d7]">{events.length}</span><span className="text-[#658097] group-open:rotate-45">+</span></span></span>
       </summary>
-      <div className="mt-3 max-h-52 overflow-auto border border-[#263e53] bg-[#09121c] p-3 font-mono text-[11px] leading-5 text-[#8fa8ba]">
-        {events.length ? events.map((event, index) => <p className="border-b border-[#1b2c3c] py-2 last:border-0" key={`${event.type}-${index}`}>{JSON.stringify(event)}</p>) : <p>Nenhum evento recebido ainda.</p>}
+      <div className="mt-3 min-h-64 max-h-[34rem] overflow-auto border border-[#263e53] bg-[#09121c] p-3 font-mono text-xs leading-5 text-[#8fa8ba] shadow-inner shadow-black/30">
+        {events.length ? events.map((event, index) => <pre className="border-b border-[#1b2c3c] py-3 last:border-0" key={`${event.type}-${index}`}><JsonEvent event={event} /></pre>) : <p>Nenhum evento recebido ainda.</p>}
       </div>
     </details>
   );
