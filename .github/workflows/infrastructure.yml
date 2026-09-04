@@ -72,6 +72,13 @@ jobs:
         run: terraform -chdir=infra plan -input=false -lock-timeout=5m ${{ needs.preflight.outputs.destroy_infrastructure == 'true' && '-destroy' || '' }} -out=tfplan
       - uses: actions/upload-artifact@v4
         with: { name: terraform-plan, path: infra/tfplan, if-no-files-found: error }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lambda-archives
+          path: |
+            dist/connection.zip
+            dist/realtime.zip
+          if-no-files-found: error
 
   apply:
     needs: [preflight, plan]
@@ -83,6 +90,8 @@ jobs:
         with: { node-version: 22, cache: npm }
       - uses: actions/download-artifact@v4
         with: { name: terraform-plan, path: infra }
+      - uses: actions/download-artifact@v4
+        with: { name: lambda-archives, path: dist }
       - uses: hashicorp/setup-terraform@v3
         with: { terraform_version: "1.10.5" }
       - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c
@@ -92,6 +101,8 @@ jobs:
           role-session-name: realtime-rooms-apply
       - run: npm ci
       - run: npm run build:lambda
+      - name: Verify Lambda deployment archives
+        run: test -f dist/connection.zip && test -f dist/realtime.zip
       - run: terraform -chdir=infra init -input=false
       - run: terraform -chdir=infra apply -input=false -lock-timeout=5m tfplan
       - name: Smoke-test the deployed WebSocket
