@@ -83,13 +83,13 @@ Isso significa que o API Gateway lê a propriedade `action` e a encaminha à rot
 { "action": "joinRoom", "roomId": "aws-lab", "nickname": "Kaio" }
 ```
 
-| `action` enviada pelo cliente | Rota do API Gateway | O que acontece |
-| --- | --- | --- |
-| `joinRoom` | `joinRoom` | Associa a conexão a uma sala e envia a presença atual. |
-| `leaveRoom` | `leaveRoom` | Remove sala e nickname da conexão. |
-| `sendMessage` | `sendMessage` | Valida e distribui uma mensagem para a sala. |
-| `typing` | `typing` | Avisa que uma pessoa começou ou parou de digitar. |
-| ação desconhecida | `$default` | A Lambda responde com um evento `error`. |
+| `action` enviada pelo cliente | Rota do API Gateway | O que acontece                                         |
+| ----------------------------- | ------------------- | ------------------------------------------------------ |
+| `joinRoom`                    | `joinRoom`          | Associa a conexão a uma sala e envia a presença atual. |
+| `leaveRoom`                   | `leaveRoom`         | Remove sala e nickname da conexão.                     |
+| `sendMessage`                 | `sendMessage`       | Valida e distribui uma mensagem para a sala.           |
+| `typing`                      | `typing`            | Avisa que uma pessoa começou ou parou de digitar.      |
+| ação desconhecida             | `$default`          | A Lambda responde com um evento `error`.               |
 
 As rotas de sala são atendidas pela Lambda `realtime-handler`. As rotas `$connect` e `$disconnect` usam a Lambda `connection-handler`.
 
@@ -174,13 +174,13 @@ O próprio navegador ignora o evento de digitação do seu nickname. Por isso vo
 
 ## Regras e limites importantes
 
-| Campo | Regra |
-| --- | --- |
-| Sala | letras, números e hífens; até 32 caracteres. |
-| Nickname | até 24 caracteres. |
-| Mensagem | até 500 caracteres. |
-| Payload WebSocket | até 2 KB. |
-| Reconexão | o frontend tenta reconectar com espera crescente, até 10 segundos. |
+| Campo             | Regra                                                              |
+| ----------------- | ------------------------------------------------------------------ |
+| Sala              | letras, números e hífens; até 32 caracteres.                       |
+| Nickname          | até 24 caracteres.                                                 |
+| Mensagem          | até 500 caracteres.                                                |
+| Payload WebSocket | até 2 KB.                                                          |
+| Reconexão         | o frontend tenta reconectar com espera crescente, até 10 segundos. |
 
 Quando uma regra falha, a Lambda envia ao mesmo cliente um evento como este:
 
@@ -198,47 +198,3 @@ Quando uma regra falha, a Lambda envia ao mesmo cliente um evento como este:
 4. Envie uma mensagem em uma aba e veja o `chatMessage` chegar na outra.
 5. Escreva em uma aba e pare; a outra mostra e remove o indicador de digitação.
 6. Abra **Eventos recebidos** para observar os payloads JSON que chegam do servidor.
-
-## O laboratório em ação
-
-As imagens abaixo mostram a sequência sugerida para o teste local. Elas são capturas da própria aplicação, não diagramas externos.
-
-### 1. Entrar na sala
-
-![Tela de entrada do Realtime Rooms com nickname e sala](images/socket_1.png)
-
-Preencha nickname e sala. Ao clicar em **Entrar na sala**, o frontend executa a abertura do WebSocket descrita em [Frontend — a função `connect` cria `new WebSocket(websocketEndpoint)`](../src/app/use-room-socket.ts#L75-L84).
-
-### 2. Confirmar a conexão e a presença
-
-![Sala conectada com participantes e eventos roomJoined e presenceUpdated](images/socket_2.png)
-
-Depois de `joinRoom`, a lista **Na sala** é atualizada pelo evento `presenceUpdated`. Veja [Backend — validação, associação à sala e publicação da presença](../src/lambdas/realtime.ts#L48-L57).
-
-### 3. Enviar a primeira mensagem
-
-![Sala com uma mensagem e o evento chatMessage colorido no painel técnico](images/socket_3.png)
-
-O painel técnico permite comparar a mensagem visível com o JSON `chatMessage` recebido. A distribuição para todas as conexões da sala acontece em [Backend — validação e broadcast de `chatMessage`](../src/lambdas/realtime.ts#L65-L69).
-
-### 4. Adicionar outra pessoa à sala
-
-![Sala com três participantes e eventos de presença](images/socket_4.png)
-
-Abra uma terceira aba com outro nickname. A nova conexão gera uma atualização de presença para a sala inteira por meio de [Backend — consulta por sala e broadcast](../src/lambdas/realtime.ts#L18-L25).
-
-### 5. Observar a conversa crescer
-
-![Chat com várias mensagens e painel de eventos aberto](images/socket_5.png)
-
-Cada mensagem é independente: o DynamoDB mantém conexões, não histórico. O feed é atualizado pelo navegador em [Frontend — interpretação e armazenamento de eventos recebidos](../src/app/use-room-socket.ts#L38-L73).
-
-### 6. Inspecionar eventos de digitação e mensagens
-
-![Chat com várias mensagens e eventos typing e chatMessage coloridos](images/socket_6.png)
-
-O destaque de sintaxe permite identificar rapidamente chaves, strings, números e booleanos. A expiração do indicador de digitação é implementada em [Frontend — debounce de 1,2 s e evento de parada](../src/app/use-room-socket.ts#L127-L141).
-
-O painel de eventos é uma ferramenta de estudo: ele mostra o protocolo da aplicação. O WebSocket transporta esses JSONs, mas os nomes `joinRoom`, `chatMessage` e `typing` são decisões deste projeto, não nomes obrigatórios do protocolo WebSocket.
-
-> **Implementação desta etapa:** [frontend — interpretação e armazenamento de eventos recebidos](../src/app/use-room-socket.ts#L38-L73); [frontend — painel técnico com JSON colorido](../src/app/room-view.tsx#L17-L48).

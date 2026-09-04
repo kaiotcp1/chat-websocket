@@ -1,6 +1,6 @@
-# Realtime Rooms
+# Realtime Rooms — Ambiente de Testes WebSocket
 
-Projeto de portfólio para praticar API Gateway WebSocket, Lambda, DynamoDB, Terraform e CI/CD com GitHub Actions usando OIDC.
+Ambiente de testes para validar chat em tempo real com API Gateway WebSocket, Lambda, DynamoDB, Terraform e CI/CD com GitHub Actions usando OIDC.
 
 O frontend permite que duas ou mais pessoas entrem na mesma sala, enviem mensagens, visualizem participantes e acompanhem eventos WebSocket em tempo real.
 
@@ -17,6 +17,46 @@ Defina `NEXT_PUBLIC_WS_URL` no `.env.local` com o output `websocket_url` do Terr
 ## Como o chat funciona
 
 Leia o guia [Como o chat WebSocket funciona](docs/README.md) para entender, sem pré-requisitos, o protocolo `wss://`, a conexão persistente e o caminho de presença, mensagens e indicador de digitação.
+
+## Ambiente de Testes WebSocket
+
+As capturas abaixo mostram o fluxo completo de validação local. Elas foram geradas pela própria aplicação.
+
+### 1. Entrar na sala
+
+![Tela de entrada do Realtime Rooms com nickname e sala](docs/images/socket_1.png)
+
+Preencha nickname e sala. Ao clicar em **Entrar na sala**, o frontend abre o WebSocket em [Frontend — função `connect`](src/app/use-room-socket.ts#L75-L84).
+
+### 2. Confirmar a conexão e a presença
+
+![Sala conectada com participantes e eventos roomJoined e presenceUpdated](docs/images/socket_2.png)
+
+Depois de `joinRoom`, a lista **Na sala** é atualizada pelo evento `presenceUpdated`. Veja [Backend — associação à sala e publicação da presença](src/lambdas/realtime.ts#L48-L57).
+
+### 3. Enviar a primeira mensagem
+
+![Sala com uma mensagem e o evento chatMessage colorido no painel técnico](docs/images/socket_3.png)
+
+O painel técnico permite comparar a mensagem visível com o JSON `chatMessage` recebido. A distribuição ocorre em [Backend — broadcast de `chatMessage`](src/lambdas/realtime.ts#L65-L69).
+
+### 4. Adicionar outra pessoa à sala
+
+![Sala com três participantes e eventos de presença](docs/images/socket_4.png)
+
+Abra uma terceira aba com outro nickname. A nova conexão gera uma atualização de presença por meio de [Backend — consulta por sala e broadcast](src/lambdas/realtime.ts#L18-L25).
+
+### 5. Observar a conversa crescer
+
+![Chat com várias mensagens e painel de eventos aberto](docs/images/socket_5.png)
+
+Cada mensagem é independente: o DynamoDB mantém conexões, não histórico. O feed é atualizado em [Frontend — interpretação de eventos](src/app/use-room-socket.ts#L38-L73).
+
+### 6. Inspecionar eventos de digitação e mensagens
+
+![Chat com várias mensagens e eventos typing e chatMessage coloridos](docs/images/socket_6.png)
+
+O destaque de sintaxe ajuda a identificar chaves, strings, números e booleanos. A expiração de digitação está em [Frontend — debounce e evento de parada](src/app/use-room-socket.ts#L127-L141).
 
 ## Validar e gerar os pacotes
 
