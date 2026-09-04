@@ -39,12 +39,14 @@ O bucket compartilhado `terraform-states-761018861028-us-east-1` é usado exclus
 
 ## Pipeline GitHub Actions
 
-O workflow **Infrastructure** é manual e aceita dois booleanos:
+O workflow **Infrastructure** lê dois booleanos versionados em `infra/locals.tf`:
 
-- `apply=true`: cria ou atualiza a infraestrutura usando o plano salvo.
-- `destroy=true`: remove somente os recursos desta aplicação usando um plano de destruição salvo.
+- `provision_infrastructure=true`: cria ou atualiza a infraestrutura usando o plano salvo.
+- `destroy_infrastructure=true`: remove somente os recursos desta aplicação usando um plano de destruição salvo.
 - Ambos como `false`: valida e gera apenas o plano.
 - Ambos como `true`: falha no preflight.
+
+Esses gates controlam somente os workflows e nunca condicionam recursos Terraform. Isso evita que um push com ambos em `false` gere um plano de destruição acidental.
 
 O workflow só pode executar a partir de `main`, `develop` ou `homolog`, que são as branches aceitas pela trust policy OIDC atual da role de deploy.
 
