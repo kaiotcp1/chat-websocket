@@ -27,16 +27,28 @@ concurrency:
 env:
   AWS_REGION: us-east-1
   TF_IN_AUTOMATION: "true"
+  APPLY_GATE: ${{ github.event_name == 'workflow_dispatch' && inputs.apply || 'false' }}
+  DESTROY_GATE: ${{ github.event_name == 'workflow_dispatch' && inputs.destroy || 'false' }}
 
 jobs:
   preflight:
     runs-on: ubuntu-latest
     steps:
-      - name: Reject conflicting gates
-        if: inputs.apply && inputs.destroy
+      - name: Validate deployment gates
         run: |
-          echo "Only one of apply or destroy may be true." >&2
-          exit 1
+          case "$APPLY_GATE:$DESTROY_GATE" in
+            false:false|true:false|false:true)
+              echo "Validated gates: apply=$APPLY_GATE destroy=$DESTROY_GATE"
+              ;;
+            true:true)
+              echo "Only one of apply or destroy may be true." >&2
+              exit 1
+              ;;
+            *)
+              echo "Gate values must be true or false." >&2
+              exit 1
+              ;;
+          esac
       - name: Require an authorized deployment branch
         run: |
           case "$GITHUB_REF" in
@@ -67,13 +79,13 @@ jobs:
       - run: terraform -chdir=infra init -input=false
       - run: terraform -chdir=infra validate
       - name: Create saved plan
-        run: terraform -chdir=infra plan -input=false -lock-timeout=5m ${{ inputs.destroy && '-destroy' || '' }} -out=tfplan
+        run: terraform -chdir=infra plan -input=false -lock-timeout=5m ${{ github.event_name == 'workflow_dispatch' && inputs.destroy && '-destroy' || '' }} -out=tfplan
       - uses: actions/upload-artifact@v4
         with: { name: terraform-plan, path: infra/tfplan, if-no-files-found: error }
 
   apply:
     needs: plan
-    if: inputs.apply || inputs.destroy
+    if: github.event_name == 'workflow_dispatch' && (inputs.apply || inputs.destroy)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -93,5 +105,5 @@ jobs:
       - run: terraform -chdir=infra init -input=false
       - run: terraform -chdir=infra apply -input=false -lock-timeout=5m tfplan
       - name: Smoke-test the deployed WebSocket
-        if: inputs.apply
+        if: github.event_name == 'workflow_dispatch' && inputs.apply
         run: npm run smoke:websocket -- "$(terraform -chdir=infra output -raw websocket_url)"
